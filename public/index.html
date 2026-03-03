@@ -1,0 +1,91 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Мой блокнот Node.js</title>
+    <style>
+        body { font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; max-width: 600px; margin: 40px auto; background: #e9ecef; padding: 20px; }
+        .container { background: white; padding: 30px; border-radius: 12px; box-shadow: 0 4px 15px rgba(0,0,0,0.1); }
+        h2 { color: #333; text-align: center; }
+        input, textarea { width: 100%; margin-bottom: 15px; padding: 12px; border: 1px solid #ddd; border-radius: 8px; box-sizing: border-box; font-size: 16px; }
+        button { width: 100%; cursor: pointer; background: #007bff; color: white; border: none; padding: 12px; border-radius: 8px; font-size: 16px; transition: 0.3s; }
+        button:hover { background: #0056b3; }
+        .note { background: #fff; padding: 15px; margin-top: 15px; border-left: 5px solid #007bff; border-radius: 4px; box-shadow: 0 2px 5px rgba(0,0,0,0.05); position: relative; }
+        .note h3 { margin-top: 0; color: #007bff; }
+        .del-btn { background: #ff4d4d; width: auto; padding: 5px 10px; font-size: 12px; margin-top: 10px; }
+        .del-btn:hover { background: #cc0000; }
+    </style>
+</head>
+<body>
+
+<div class="container">
+    <h2>📝 Мои заметки</h2>
+    <input type="text" id="title" placeholder="Заголовок заметки">
+    <textarea id="content" rows="3" placeholder="Текст заметки..."></textarea>
+    <button onclick="addNote()">Сохранить заметку</button>
+
+    <div id="notesList"></div>
+</div>
+
+<script>
+    // 1. Загрузка всех заметок (READ)
+    async function loadNotes() {
+        const response = await fetch('/api/notes');
+        const notes = await response.json();
+        const list = document.getElementById('notesList');
+        list.innerHTML = ''; // Очищаем список перед отрисовкой
+
+        notes.forEach(note => {
+            const noteElement = document.createElement('div');
+            noteElement.className = 'note';
+            noteElement.innerHTML = `
+                <h3>${note.title}</h3>
+                <p>${note.content}</p>
+                <button class="del-btn" onclick="deleteNote(${note.id})">Удалить</button>
+            `;
+            list.appendChild(noteElement);
+        });
+    }
+
+    // 2. Добавление новой заметки (CREATE)
+    async function addNote() {
+        const titleInput = document.getElementById('title');
+        const contentInput = document.getElementById('content');
+
+        if (!titleInput.value || !contentInput.value) {
+            alert("Заполни все поля!");
+            return;
+        }
+
+        const newNote = {
+            title: titleInput.value,
+            content: contentInput.value
+        };
+
+        await fetch('/api/notes', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify(newNote)
+        });
+
+        // Очищаем поля и перезагружаем список
+        titleInput.value = '';
+        contentInput.value = '';
+        loadNotes();
+    }
+
+    // 3. Удаление заметки (DELETE)
+    async function deleteNote(id) {
+        if (confirm("Точно удалить?")) {
+            await fetch(`/api/notes/${id}`, { method: 'DELETE' });
+            loadNotes();
+        }
+    }
+
+    // Загружаем заметки при открытии страницы
+    loadNotes();
+</script>
+
+</body>
+</html>
